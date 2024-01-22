@@ -1,0 +1,178 @@
+<?php
+
+function astra_security_init()
+{
+
+    if (path_is_admin(current_path()) || user_access('administer site configuration') || drupal_is_cli() || function_exists('drush_main')) {
+        return true;
+    }
+
+
+    try {
+        $path_to_astra = dirname(__FILE__) . '/astra/Astra.php';
+
+        if (file_exists($path_to_astra)) {
+            include_once($path_to_astra);
+
+            if (class_exists('Astra')) {
+                $astra = new Astra();
+            }
+        } else {
+            //File does not exist
+        }
+    } catch (Exception $e) {
+        // Graceful degradation
+    }
+}
+
+/**
+ * Implementation of hook_help.
+ */
+function astra_security_help($path, $arg)
+{
+    $output = '';
+
+    $astra_path = "";
+
+    if (file_exists(__DIR__ . "/astra/astra-config.php")) {
+        require_once(__DIR__ . "/astra/astra-config.php");
+    } elseif (file_exists(getcwd() . "/astra/astra-config.php")) {
+        require_once(getcwd . "/astra/astra-config.php");
+    }
+
+    $site_key = "";
+    if (defined("CZ_SITE_KEY")) {
+        $site_key = CZ_SITE_KEY;
+    }
+
+    if ($path == 'admin/help#astra_security') {
+        $output .= 'Astra is a security module monitoring & blocking malicious requests coming to your Drupal installation. Login to your Astra Dashboard to see the threat activity:';
+        $output .= '<ul>';
+        $output .= '<li><a target="_new" href="https://www.getastra.com/a/dashboard/' . $site_key . '">Dashboard</a></li>';
+        $output .= '<li><a target="_new" href="https://www.getastra.com/a/threats/' . $site_key . '">Threats</a></li>';
+        $output .= '<li><a target="_new" href="https://www.getastra.com/a/settings/' . $site_key . '">Settings</a></li>';
+        $output .= '<li><a target="_new" href="https://www.getastra.com/a/support/">Support</a></li>';
+        $output .= '</ul>';
+    }
+
+    return $output;
+}
+
+/**
+ * Implemetation of hook_user_login.
+ */
+function astra_security_user_login(&$edit, $account)
+{
+
+    if (!user_access('exclude from login activity', $account)) {
+        $query = db_insert('astra_security');
+        $query->fields(array(
+            'uid' => $account->uid,
+            'host_user_agent' => $_SERVER['HTTP_USER_AGENT'],
+            'hostname' => $_SERVER['REMOTE_ADDR'],
+            'timestamp' => time(),
+        ));
+
+        $query->execute();
+    }
+}
+
+/**
+ * Implemetation of hook_user_login.
+ */
+function astra_security_watchdog($log_entry)
+{
+    switch ($log_entry['message']) {
+        case 'Login attempt failed for %user.':
+            send_to_astra(array("username" => $log_entry['variables']['%user'], "success" => 0,));
+            break;
+
+        case 'Session opened for %name.':
+            // The login for $log_entry['variables']['%name'] was successful.
+            $drupal_user = $log_entry['user'];
+            $user = array(
+                'user_login' => $drupal_user->name, //Username
+                'user_email' => $drupal_user->mail, //Email address
+                'display_name' => $drupal_user->name, //Name of the user
+            );
+            send_to_astra(array("user" => $user, "success" => 1,));
+            break;
+    }
+}
+
+function send_to_astra($data = array())
+{
+    $astra_path = __DIR__ . '/astra/'; // Path to the /astra/ folder with the trailing slash
+
+    if (file_exists(__DIR__ . "/astra/libraries/API_connect.php")) {
+        $astra_path = __DIR__ . "/astra/";
+    } elseif (file_exists(getcwd() . "/astra/libraries/API_connect.php")) {
+        //Found
+        $astra_path = getcwd() . "/astra/";
+    } else {
+        return false;
+    }
+
+    if (file_exists($astra_path . "libraries/API_connect.php")) {
+        require_once($astra_path . "Astra.php");
+        $astra = new Astra();
+        require_once($astra_path . "libraries/API_connect.php");
+        $client_api = new Api_connect();
+        $ret = $client_api->send_request("has_loggedin", $data, "magento");
+        return $ret;
+    }
+}
+
+/**
+ * Implementation of hook_permission.
+ */
+function astra_security_permission()
+{
+    return array(
+        'exclude from login activity' => array(
+            'title' => t('Exclude from activity tracking'),
+            'description' => t('Do not track login activity for this user.'),
+        ),
+        'view own login activity' => array(
+            'title' => t('View own login activity'),
+            'description' => t('Allow user to view login activity of own account.'),
+        ),
+        'administer login activity' => array(
+            'title' => t('Administer login activity'),
+            'description' => t('Change configurations of this module. View login activity of other users.'),
+        ),
+    );
+}
+
+/**
+ * Implementation of hook_menu.
+ */
+function astra_security_menu()
+{
+    $menu = array();
+
+    $menu['admin/reports/astra_security'] = array(
+        'title' => 'ASTRA WEB SECURITY',
+        'description' => 'View Security Threats history for your website.',
+        'page callback' => 'astra_security_admin_report',
+        'page arguments' => array(0),
+        'access callback' => 'user_access',
+        'access arguments' => array('administer login activity'),
+        'file' => 'astra_security.admin.inc',
+    );
+
+    return $menu;
+}
+
+/**
+ * Custom get_browser handler.
+ * Checks for browscap module with fallback to native PHP function.
+ */
+function _astra_security_get_browser($user_agent)
+{
+    if (module_exists('browscap')) {
+        return (object)browscap_get_browser($user_agent);
+    } else {
+        return get_browser($user_agent);
+    }
+}

@@ -1,0 +1,23 @@
+.form-item.form-type-select.form-item-user-prune-time-year,
+.form-item.form-type-select.form-item-user-prune-time-month {
+  padding: 0;
+  margin: 0 5px 0 0;
+  float: left;
+}
+.form-item.form-type-select.form-item-user-prune-time-day {
+  padding: 0;
+  margin: 0;
+}
+#user-prune-form select#edit-user-prune-time-month {
+  width: 80px;
+}
+
+#user-prune-form select.form-select {
+  width: 65px;
+  height: 20px;
+}
+
+input#edit-user-prune-time-unit-multiply {
+  height: 14px;
+  margin-top: 2px;
+}

@@ -1,0 +1,10 @@
+name = Astra Security (Drupal)
+description = Protect your website with Astra WAF and stop hackers from taking control
+core = 7.x
+
+; Information added by Drupal.org packaging script on 2014-05-02
+version = "7.x-1.0"
+core = "7.x"
+project = "astra_security_drupal"
+datestamp = "1399017533"
+

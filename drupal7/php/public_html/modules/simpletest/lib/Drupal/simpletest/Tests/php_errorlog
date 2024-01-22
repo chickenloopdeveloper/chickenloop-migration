@@ -1,0 +1,4 @@
+[29-Jun-2022 17:09:23 UTC] PHP Fatal error:  Uncaught Error: Class 'DrupalWebTestCase' not found in /home/customer/www/chickenloop.com/public_html/modules/simpletest/lib/Drupal/simpletest/Tests/PSR0WebTest.php:5
+Stack trace:
+#0 {main}
+  thrown in /home/customer/www/chickenloop.com/public_html/modules/simpletest/lib/Drupal/simpletest/Tests/PSR0WebTest.php on line 5

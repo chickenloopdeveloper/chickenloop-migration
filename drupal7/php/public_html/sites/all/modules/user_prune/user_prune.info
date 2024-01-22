@@ -1,0 +1,19 @@
+name = user_prune
+description = Prune not active users.
+core = 7.x
+configure = admin/people/user-prune
+
+stylesheets[all][] = css/user_prune.css
+
+; Information added by Drupal.org packaging script on 2016-09-16
+version = "7.x-1.4"
+core = "7.x"
+project = "user_prune"
+datestamp = "1474013340"
+
+; Information added by Drupal.org packaging script on 2017-02-09
+version = "7.x-1.7"
+core = "7.x"
+project = "user_prune"
+datestamp = "1486641796"
+
